@@ -17,6 +17,14 @@ export class VaultError extends Error {
   }
   
   static credentialNotFound(key: string) {
-    return new VaultError(`Credential not found: ${key}`, 'CREDENTIAL_NOT_FOUND');
-  }
+
+
+
+export interface VaultToken { namespace: string; credential: string; field?: string; }
+export class VaultError {
+  constructor(msg: string, code: string) {}
+  static credentialNotFound(key: string) { return new VaultError('Not found', 'CREDENTIAL_NOT_FOUND'); }
+  static authenticationFailed(msg: string) { return new VaultError(msg, 'AUTH_FAILED'); }
 }
+export interface Credential { encryptedData: string; }
+export interface AccessGrant { id: string; }
