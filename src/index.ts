@@ -1,5 +1,5 @@
 /**
- * Universal Vault V4 - Main Entry Point
+ * FabledVault - Main Entry Point
  * 
  * Agent-agnostic credential management for any AI agent, schema, or system
  */
@@ -22,6 +22,6 @@ export const examples = {
   hardwareSecurity: "Hardware security example"
 };
 
-console.log('🚀 Universal Vault V4 loaded');
-console.log('📚 Examples available: import { examples } from "universal-vault-v4"');
+console.log('🚀 FabledVault loaded');
+console.log('📚 Examples available: import { examples } from "FabledVault"');
 console.log('💰 Perfect for Grant financial workflows!');

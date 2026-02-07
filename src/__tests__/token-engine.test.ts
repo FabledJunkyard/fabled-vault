@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
 /**
  * Universal Vault V4 - Token Engine Tests
  */
