@@ -14,14 +14,15 @@ import {
 import { z } from 'zod';
 import { TokenEngine } from '../core/token-engine.js';
 import { VaultError, type Credential, type AccessGrant } from '../types/index.js';
+import { VaultDB } from '../core/db.js';
 
 export class UniversalVaultMCPServer {
   private server: Server;
   private tokenEngine: TokenEngine;
-  private credentials: Map<string, Credential> = new Map();
-  private grants: Map<string, AccessGrant> = new Map();
-  
+  private db: VaultDB;
+
   constructor() {
+    this.db = new VaultDB();
     this.server = new Server(
       {
         name: 'universal-vault-v4',
@@ -243,9 +244,9 @@ export class UniversalVaultMCPServer {
     // Build credentials map for substitution
     const credentialsMap = new Map();
     for (const token of tokens) {
-      const credentialKey = `${token.namespace}:${token.credential}`;
-      const credential = this.credentials.get(credentialKey);
+      const credential = this.db.getCredential(token.namespace, token.credential);
       if (credential) {
+        const credentialKey = `${token.namespace}:${token.credential}`;
         credentialsMap.set(credentialKey, JSON.parse(credential.encryptedData));
       }
     }
@@ -291,14 +292,13 @@ export class UniversalVaultMCPServer {
       allowedTools: [],
     };
     
-    const key = `${namespace}:${name}`;
-    this.credentials.set(key, credential);
-    
+    this.db.addCredential(credential);
+
     return {
       content: [
         {
           type: 'text',
-          text: `Credential '${key}' added successfully. Use token: [VAULT:${namespace}:${name}]`,
+          text: `Credential '${namespace}:${name}' added successfully. Use token: [VAULT:${namespace}:${name}]`,
         },
       ],
     };
@@ -317,19 +317,14 @@ export class UniversalVaultMCPServer {
         id: this.generateId(),
         credentialId: credId,
         agentId: agent_id,
-        purpose,
-        grantedAt: new Date().toISOString(),
-        expiresAt: duration_minutes > 0 
-          ? new Date(Date.now() + duration_minutes * 60 * 1000).toISOString()
-          : undefined,
-        usesRemaining: max_uses > 0 ? max_uses : undefined,
+usesRemaining: undefined,
         allowedTools: [],
         requiresConfirmation: false,
         context: {},
         isActive: true,
       };
       
-      this.grants.set(grant.id, grant);
+      this.db.createGrant(grant);
       grants.push(grant.id);
     }
     
@@ -348,15 +343,14 @@ export class UniversalVaultMCPServer {
    */
   private async handleListCredentials(args: any) {
     const { namespace, agent_id } = args;
-    
-    const credentials = Array.from(this.credentials.values())
-      .filter(cred => !namespace || cred.namespace === namespace)
+
+    const credentials = this.db.listCredentials(namespace)
       .map(cred => ({
         namespace: cred.namespace,
         name: cred.name,
         description: cred.description,
         token: `[VAULT:${cred.namespace}:${cred.name}]`,
-        hasAccess: agent_id ? this.hasAccess(agent_id, `${cred.namespace}:${cred.name}`) : false,
+        hasAccess: agent_id ? this.db.hasAccess(agent_id, cred.id || '') : false,
       }));
     
     return {
@@ -388,8 +382,10 @@ export class UniversalVaultMCPServer {
    * Check if agent has access to credential
    */
   private hasAccess(agentId: string, credentialKey: string): boolean {
-    // TODO: Implement proper access checking based on grants
-    return true; // For now, allow all access
+    const [namespace, name] = credentialKey.split(':');
+    const credential = this.db.getCredential(namespace, name);
+    if (!credential || !credential.id) return false;
+    return this.db.hasAccess(agentId, credential.id);
   }
   
   /**
@@ -405,8 +401,14 @@ export class UniversalVaultMCPServer {
   async start() {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
-    console.log('Universal Vault V4 MCP Server started');
+    console.error('MCP live'); // MCP servers log to stderr per protocol
   }
+}
+
+// CLI entry point
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const server = new UniversalVaultMCPServer();
+  server.start().catch(console.error);
 }
 
 // Example usage for Grant financial workflows

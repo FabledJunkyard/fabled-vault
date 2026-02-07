@@ -8,7 +8,7 @@ import { VaultToken, VaultError } from '../types/index.js';
 
 export class TokenEngine {
   // Universal token pattern: [VAULT:namespace:credential(.field)?]
-  private static readonly TOKEN_PATTERN = /\[VAULT:([^:]+):([^.\]]+)(?:\.([^.\]]+))?\]/g;
+  private static readonly TOKEN_PATTERN = /\[VAULT:([a-zA-Z0-9_-]+):([a-zA-Z0-9_-]+)(?:\.([a-zA-Z0-9_-]+))?\]/g;
   
   /**
    * Extract all vault tokens from text
@@ -18,14 +18,14 @@ export class TokenEngine {
     const matches = text.matchAll(TokenEngine.TOKEN_PATTERN);
     
     for (const match of matches) {
-      const [raw, namespace, credential, field] = match;
+      const [, namespace, credential, field] = match;
       
       tokens.push({
         id: this.generateTokenId(),
-        raw: raw || '',
+        raw: match[0],
         namespace: namespace as any,
-        credential: credential || '',
-        field: field || undefined,
+        credential: credential || "",
+        field,
         createdAt: new Date().toISOString(),
         accessCount: 0,
       });
@@ -125,24 +125,25 @@ export class TokenEngine {
    * Validate token format
    */
   static validateTokenFormat(token: string): boolean {
-    return TokenEngine.TOKEN_PATTERN.test(token);
+    const pattern = /\[VAULT:([a-zA-Z0-9_-]+):([a-zA-Z0-9_-]+)(?:\.([a-zA-Z0-9_-]+))?\]/;
+    return pattern.test(token);
   }
   
   /**
    * Parse token components
    */
   static parseToken(token: string): VaultToken | null {
-    const match = token.match(/\[VAULT:([^:]+):([^.\]]+)(?:\.([^.\]]+))?\]/);
+    const match = token.match(/\[VAULT:([a-zA-Z0-9_-]+):([a-zA-Z0-9_-]+)(?:\.([a-zA-Z0-9_-]+))?\]/);
     if (!match) return null;
     
-    const [raw, namespace, credential, field] = match;
+    const [, namespace, credential, field] = match;
     
     return {
       id: `parsed_${Date.now()}`,
-      raw: raw || '',
+      raw: match[0],
       namespace: namespace as any,
-      credential: credential || '',
-      field: field || undefined,
+      credential: credential || "",
+      field,
       createdAt: new Date().toISOString(),
       accessCount: 0,
     };

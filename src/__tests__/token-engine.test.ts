@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  * Universal Vault V4 - Token Engine Tests
  */
 
-import { describe, test, expect } from 'vitest';
 import { TokenEngine } from '../core/token-engine.js';
 
 describe('TokenEngine', () => {
@@ -14,7 +13,7 @@ describe('TokenEngine', () => {
   });
   
   describe('Token Extraction', () => {
-    test('extracts simple tokens', () => {
+    it('extracts simple tokens', () => {
       const text = 'Use [VAULT:personal:api_key] to authenticate';
       const tokens = engine.extractTokens(text);
       
@@ -25,7 +24,7 @@ describe('TokenEngine', () => {
       expect(tokens[0].field).toBeUndefined();
     });
     
-    test('extracts structured tokens with fields', () => {
+    it('extracts structured tokens with fields', () => {
       const text = 'Login with [VAULT:personal:chase_login.username] and [VAULT:personal:chase_login.password]';
       const tokens = engine.extractTokens(text);
       
@@ -40,7 +39,7 @@ describe('TokenEngine', () => {
       expect(tokens[1].field).toBe('password');
     });
     
-    test('handles multiple namespaces', () => {
+    it('handles multiple namespaces', () => {
       const text = `
         Business: [VAULT:business:aws_key]
         Personal: [VAULT:personal:bank_login]
@@ -52,14 +51,14 @@ describe('TokenEngine', () => {
       expect(tokens.map(t => t.namespace)).toEqual(['business', 'personal', 'finance']);
     });
     
-    test('handles no tokens', () => {
+    it('handles no tokens', () => {
       const text = 'This text has no vault tokens';
       const tokens = engine.extractTokens(text);
       
       expect(tokens).toHaveLength(0);
     });
     
-    test('ignores invalid token formats', () => {
+    it('ignores invalid token formats', () => {
       const text = `
         Valid: [VAULT:personal:valid_token]
         Invalid: [VAULT:invalid]
@@ -67,14 +66,16 @@ describe('TokenEngine', () => {
         Still invalid: [NOT_VAULT:personal:token]
       `;
       const tokens = engine.extractTokens(text);
-      
+
+      console.log('DEBUG: Found tokens:', tokens.map(t => ({raw: t.raw, ns: t.namespace, cred: t.credential})));
+
       expect(tokens).toHaveLength(1);
       expect(tokens[0].credential).toBe('valid_token');
     });
   });
   
   describe('Token Substitution', () => {
-    test('substitutes simple credentials', async () => {
+    it('substitutes simple credentials', async () => {
       const text = 'API Key: [VAULT:personal:github_token]';
       const credentials = new Map([
         ['personal:github_token', 'ghp_1234567890abcdef']
@@ -89,7 +90,7 @@ describe('TokenEngine', () => {
       expect(result.processingTimeMs).toBeLessThan(10); // Performance target
     });
     
-    test('substitutes structured credentials', async () => {
+    it('substitutes structured credentials', async () => {
       const text = 'Login: [VAULT:personal:bank.username] Password: [VAULT:personal:bank.password]';
       const credentials = new Map([
         ['personal:bank', {
@@ -107,7 +108,7 @@ describe('TokenEngine', () => {
       expect(result.text).toBe('Login: matthew@example.com Password: secure123');
     });
     
-    test('handles missing credentials', async () => {
+    it('handles missing credentials', async () => {
       const text = 'Missing: [VAULT:personal:missing_cred]';
       const credentials = new Map();
       
@@ -119,7 +120,7 @@ describe('TokenEngine', () => {
       ).rejects.toThrow('Credential not found');
     });
     
-    test('handles missing fields', async () => {
+    it('handles missing fields', async () => {
       const text = 'Missing field: [VAULT:personal:cred.missing_field]';
       const credentials = new Map([
         ['personal:cred', { username: 'test' }]
@@ -133,14 +134,14 @@ describe('TokenEngine', () => {
       ).rejects.toThrow('Field \'missing_field\' not found');
     });
     
-    test('performance: processes multiple tokens quickly', async () => {
+    it('performance: processes multiple tokens quickly', async () => {
       const text = `
         [VAULT:personal:token1] [VAULT:personal:token2] [VAULT:personal:token3]
         [VAULT:business:token4] [VAULT:business:token5] [VAULT:finance:token6]
         [VAULT:personal:structured.field1] [VAULT:personal:structured.field2]
       `;
       
-      const credentials = new Map([
+      const credentials = new Map<string, any>([
         ['personal:token1', 'value1'],
         ['personal:token2', 'value2'],
         ['personal:token3', 'value3'],
@@ -163,13 +164,13 @@ describe('TokenEngine', () => {
   });
   
   describe('Token Validation', () => {
-    test('validates correct token formats', () => {
+    it('validates correct token formats', () => {
       expect(TokenEngine.validateTokenFormat('[VAULT:personal:simple]')).toBe(true);
       expect(TokenEngine.validateTokenFormat('[VAULT:business:structured.field]')).toBe(true);
       expect(TokenEngine.validateTokenFormat('[VAULT:finance:api_key]')).toBe(true);
     });
     
-    test('rejects invalid token formats', () => {
+    it('rejects invalid token formats', () => {
       expect(TokenEngine.validateTokenFormat('[VAULT:invalid]')).toBe(false);
       expect(TokenEngine.validateTokenFormat('VAULT:personal:no_brackets')).toBe(false);
       expect(TokenEngine.validateTokenFormat('[NOT_VAULT:personal:wrong_prefix]')).toBe(false);
@@ -177,7 +178,7 @@ describe('TokenEngine', () => {
   });
   
   describe('Token Parsing', () => {
-    test('parses valid tokens', () => {
+    it('parses valid tokens', () => {
       const token = TokenEngine.parseToken('[VAULT:personal:github_token]');
       
       expect(token).toBeTruthy();
@@ -186,7 +187,7 @@ describe('TokenEngine', () => {
       expect(token?.field).toBeUndefined();
     });
     
-    test('parses structured tokens', () => {
+    it('parses structured tokens', () => {
       const token = TokenEngine.parseToken('[VAULT:business:aws.access_key]');
       
       expect(token).toBeTruthy();
@@ -195,14 +196,14 @@ describe('TokenEngine', () => {
       expect(token?.field).toBe('access_key');
     });
     
-    test('returns null for invalid tokens', () => {
+    it('returns null for invalid tokens', () => {
       expect(TokenEngine.parseToken('[VAULT:invalid]')).toBeNull();
       expect(TokenEngine.parseToken('not_a_token')).toBeNull();
     });
   });
   
   describe('Grant Financial Workflows', () => {
-    test('handles typical Grant banking scenario', async () => {
+    it('handles typical Grant banking scenario', async () => {
       const bankingPrompt = `
         Log into my Chase bank using credentials [VAULT:personal:chase_login.username] 
         and [VAULT:personal:chase_login.password]. Then check my account balance 
@@ -212,7 +213,7 @@ describe('TokenEngine', () => {
         to get portfolio summary.
       `;
       
-      const credentials = new Map([
+      const credentials = new Map<string, any>([
         ['personal:chase_login', {
           username: 'matthew@example.com',
           password: 'secure_bank_password',

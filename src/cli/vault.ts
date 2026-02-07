@@ -10,6 +10,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { UniversalVaultMCPServer } from '../servers/mcp-server.js';
+import { VaultDB } from '../core/db.js';
 
 const program = new Command();
 
@@ -36,14 +37,15 @@ program
   .action(async (options) => {
     console.log('🔐 Initializing Universal Vault V4...');
     console.log(`📂 Vault location: ${VAULT_DIR}`);
-    
+
     if (fs.existsSync(VAULT_DB)) {
       console.log('✅ Vault already initialized');
       return;
     }
-    
-    // TODO: Implement actual vault initialization
-    fs.writeFileSync(VAULT_DB, '{}');
+
+    // Initialize SQLite database
+    const db = new VaultDB(VAULT_DB);
+    db.close();
     
     if (options.recoveryKey) {
       console.log('📄 Recovery key: [would generate 24-word mnemonic]');
@@ -206,6 +208,68 @@ program
     // TODO: Implement actual grant revocation
     console.log('✅ Access revoked');
     console.log(`🚫 ${agent} can no longer access [VAULT:${credential}] tokens`);
+  });
+
+// Substitute command
+program
+  .command('substitute [text]')
+  .description('Substitute vault tokens in text with actual values')
+  .option('--agent <id>', 'Agent ID for access control', 'cli')
+  .action(async (text, options) => {
+    const { TokenEngine } = await import('../core/token-engine.js');
+    const engine = new TokenEngine();
+
+    // Read from stdin if no text provided
+    let input = text;
+    if (!input) {
+      const readline = await import('readline');
+      const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+        terminal: false
+      });
+
+      const lines: string[] = [];
+      for await (const line of rl) {
+        lines.push(line);
+      }
+      input = lines.join('\n');
+    }
+
+    // Extract tokens
+    const tokens = engine.extractTokens(input);
+
+    if (tokens.length === 0) {
+      console.log(input);
+      return;
+    }
+
+    // Load credentials from VaultDB
+    const db = new VaultDB(VAULT_DB);
+    const credentials = new Map<string, any>();
+
+    for (const token of tokens) {
+      const cred = db.getCredential(token.namespace, token.credential);
+      if (cred) {
+        const key = `${token.namespace}:${token.credential}`;
+        credentials.set(key, JSON.parse(cred.encryptedData));
+      }
+    }
+
+    db.close();
+
+    // Perform substitution
+    try {
+      const result = await engine.substituteTokens(input, credentials, {
+        agentId: options.agent,
+        sessionId: `cli_${Date.now()}`
+      });
+
+      console.log(result.text);
+    } catch (error) {
+      console.error('❌ Substitution failed:', error instanceof Error ? error.message : 'Unknown error');
+      process.exit(1);
+    }
   });
 
 // Audit log
