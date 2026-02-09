@@ -1,0 +1,282 @@
+{
+  "version": "1.0.0",
+  "schemaName": "PII Categories",
+  "description": "Personally Identifiable Information (PII) category schema with validation patterns",
+  "timestamp": "2026-02-08T00:00:00Z",
+  "categories": [
+    {
+      "id": "ssn",
+      "name": "Social Security Number",
+      "description": "US Social Security Number (XXX-XX-XXXX)",
+      "pattern": "^\\d{3}-\\d{2}-\\d{4}$",
+      "patternDescription": "3-digit-2-digit-4-digit (e.g., 123-45-6789)",
+      "sensitivityLevel": "critical",
+      "maskFormat": "XXX-XX-****",
+      "examples": ["123-45-6789"],
+      "fieldTypes": ["ssn", "social_security_number", "tax_id"],
+      "auditRequired": true,
+      "allowExport": false
+    },
+    {
+      "id": "credit_card",
+      "name": "Credit Card Number",
+      "description": "Full or partial credit card number",
+      "pattern": "^\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}$",
+      "patternDescription": "4 groups of 4 digits (e.g., 4532-1488-0343-6467)",
+      "sensitivityLevel": "critical",
+      "maskFormat": "****-****-****-****",
+      "examples": ["4532-1488-0343-6467", "4532 1488 0343 6467"],
+      "fieldTypes": ["credit_card", "card_number", "pan"],
+      "auditRequired": true,
+      "allowExport": false
+    },
+    {
+      "id": "bank_account",
+      "name": "Bank Account Number",
+      "description": "Bank account number (5-17 digits)",
+      "pattern": "^\\d{5,17}$",
+      "patternDescription": "5 to 17 consecutive digits",
+      "sensitivityLevel": "critical",
+      "maskFormat": "****-****-****",
+      "examples": ["0123456789012345"],
+      "fieldTypes": ["account_number", "bank_account", "account_id"],
+      "auditRequired": true,
+      "allowExport": false
+    },
+    {
+      "id": "routing_number",
+      "name": "Bank Routing Number",
+      "description": "US Bank routing/ABA number (9 digits)",
+      "pattern": "^\\d{9}$",
+      "patternDescription": "Exactly 9 digits (e.g., 021000021)",
+      "sensitivityLevel": "high",
+      "maskFormat": "****21",
+      "examples": ["021000021"],
+      "fieldTypes": ["routing_number", "aba", "transit_number"],
+      "auditRequired": true,
+      "allowExport": false
+    },
+    {
+      "id": "passport",
+      "name": "Passport Number",
+      "description": "International passport number",
+      "pattern": "^[A-Z0-9]{6,9}$",
+      "patternDescription": "6-9 alphanumeric characters (e.g., AB123456)",
+      "sensitivityLevel": "critical",
+      "maskFormat": "****56",
+      "examples": ["AB123456"],
+      "fieldTypes": ["passport", "passport_number"],
+      "auditRequired": true,
+      "allowExport": false
+    },
+    {
+      "id": "driver_license",
+      "name": "Driver's License Number",
+      "description": "State driver's license number",
+      "pattern": "^[A-Z0-9]{4,8}$",
+      "patternDescription": "4-8 alphanumeric characters (varies by state)",
+      "sensitivityLevel": "high",
+      "maskFormat": "****8",
+      "examples": ["D1234567"],
+      "fieldTypes": ["driver_license", "drivers_license", "dl_number"],
+      "auditRequired": true,
+      "allowExport": false
+    },
+    {
+      "id": "email",
+      "name": "Email Address",
+      "description": "Electronic mail address",
+      "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
+      "patternDescription": "Standard email format (e.g., user@example.com)",
+      "sensitivityLevel": "medium",
+      "maskFormat": "u***@example.com",
+      "examples": ["user@example.com"],
+      "fieldTypes": ["email", "email_address", "contact_email"],
+      "auditRequired": true,
+      "allowExport": true
+    },
+    {
+      "id": "phone",
+      "name": "Phone Number",
+      "description": "Telephone number",
+      "pattern": "^\\+?1?\\s?\\(?\\d{3}\\)?[\\s.-]?\\d{3}[\\s.-]?\\d{4}$",
+      "patternDescription": "US/International format (e.g., +1 (555) 123-4567)",
+      "sensitivityLevel": "medium",
+      "maskFormat": "(***) ***-****",
+      "examples": ["+1 (555) 123-4567", "555-123-4567"],
+      "fieldTypes": ["phone", "phone_number", "mobile"],
+      "auditRequired": true,
+      "allowExport": true
+    },
+    {
+      "id": "api_key",
+      "name": "API Key / Secret",
+      "description": "API key, token, or shared secret",
+      "pattern": "^[A-Za-z0-9_-]{20,}$",
+      "patternDescription": "20+ alphanumeric/dash/underscore characters",
+      "sensitivityLevel": "critical",
+      "maskFormat": "sk_live_****",
+      "examples": ["sk_live_51234567890abcdefghij"],
+      "fieldTypes": ["api_key", "secret_key", "token", "access_token"],
+      "auditRequired": true,
+      "allowExport": false
+    },
+    {
+      "id": "aws_credentials",
+      "name": "AWS Credentials",
+      "description": "AWS Access Key ID or Secret Access Key",
+      "pattern": "^(AKIA[0-9A-Z]{16}|[A-Za-z0-9/+=]{40})$",
+      "patternDescription": "AWS Key ID (AKIA...) or Secret Access Key",
+      "sensitivityLevel": "critical",
+      "maskFormat": "AKIA****...****",
+      "examples": ["AKIAIOSFODNN7EXAMPLE"],
+      "fieldTypes": ["aws_access_key", "aws_secret", "aws_key"],
+      "auditRequired": true,
+      "allowExport": false
+    },
+    {
+      "id": "database_password",
+      "name": "Database Password",
+      "description": "Database connection password",
+      "pattern": "^.{8,}$",
+      "patternDescription": "Minimum 8 characters",
+      "sensitivityLevel": "critical",
+      "maskFormat": "****",
+      "examples": ["MySecurePass123!"],
+      "fieldTypes": ["db_password", "database_password", "db_pass"],
+      "auditRequired": true,
+      "allowExport": false
+    },
+    {
+      "id": "private_key",
+      "name": "Private Cryptographic Key",
+      "description": "RSA, ECDSA, or other private key",
+      "pattern": "^-----BEGIN (RSA |EC |DSA )?PRIVATE KEY",
+      "patternDescription": "PEM format private key",
+      "sensitivityLevel": "critical",
+      "maskFormat": "-----BEGIN [TYPE] PRIVATE KEY-----",
+      "examples": ["-----BEGIN RSA PRIVATE KEY-----"],
+      "fieldTypes": ["private_key", "rsa_key", "ssh_key"],
+      "auditRequired": true,
+      "allowExport": false
+    },
+    {
+      "id": "oauth_token",
+      "name": "OAuth Token",
+      "description": "OAuth access token, refresh token, or bearer token",
+      "pattern": "^(ya29\\.|ghp_|gho_|github_pat_|ghu_|sl\\.)[A-Za-z0-9_-]{20,}$",
+      "patternDescription": "Bearer token or platform-specific token",
+      "sensitivityLevel": "critical",
+      "maskFormat": "ghp_****...****",
+      "examples": ["ghp_abcdefghijklmnopqrst1234567890"],
+      "fieldTypes": ["oauth_token", "bearer_token", "refresh_token", "access_token"],
+      "auditRequired": true,
+      "allowExport": false
+    },
+    {
+      "id": "tax_id",
+      "name": "Tax ID (EIN)",
+      "description": "US Employer Identification Number (EIN)",
+      "pattern": "^\\d{2}-\\d{7}$",
+      "patternDescription": "2-digit-7-digit format (e.g., 12-3456789)",
+      "sensitivityLevel": "high",
+      "maskFormat": "**-****89",
+      "examples": ["12-3456789"],
+      "fieldTypes": ["ein", "tax_id", "employer_id"],
+      "auditRequired": true,
+      "allowExport": false
+    },
+    {
+      "id": "ipv4_address",
+      "name": "IPv4 Address",
+      "description": "Internet Protocol version 4 address",
+      "pattern": "^(\\d{1,3}\\.){3}\\d{1,3}$",
+      "patternDescription": "Dotted quad notation (e.g., 192.0.2.1)",
+      "sensitivityLevel": "low",
+      "maskFormat": "192.0.2.***",
+      "examples": ["192.0.2.1"],
+      "fieldTypes": ["ipv4", "ip_address"],
+      "auditRequired": false,
+      "allowExport": true
+    },
+    {
+      "id": "jwt_token",
+      "name": "JWT Token",
+      "description": "JSON Web Token",
+      "pattern": "^eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$",
+      "patternDescription": "Three base64url-encoded parts separated by dots",
+      "sensitivityLevel": "high",
+      "maskFormat": "eyJ....[truncated]",
+      "examples": ["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"],
+      "fieldTypes": ["jwt", "jwt_token"],
+      "auditRequired": true,
+      "allowExport": false
+    },
+    {
+      "id": "certificate",
+      "name": "X.509 Certificate",
+      "description": "SSL/TLS certificate (public or private)",
+      "pattern": "^-----BEGIN CERTIFICATE",
+      "patternDescription": "PEM format certificate",
+      "sensitivityLevel": "medium",
+      "maskFormat": "-----BEGIN CERTIFICATE-----",
+      "examples": ["-----BEGIN CERTIFICATE-----"],
+      "fieldTypes": ["certificate", "cert", "ssl_cert"],
+      "auditRequired": false,
+      "allowExport": true
+    }
+  ],
+  "severityLevels": {
+    "critical": {
+      "color": "red",
+      "description": "Immediate security threat if exposed",
+      "requiresMFA": true,
+      "requiresApproval": true,
+      "auditLoggingLevel": "verbose"
+    },
+    "high": {
+      "color": "orange",
+      "description": "Significant security impact if exposed",
+      "requiresMFA": true,
+      "requiresApproval": false,
+      "auditLoggingLevel": "standard"
+    },
+    "medium": {
+      "color": "yellow",
+      "description": "Moderate security impact if exposed",
+      "requiresMFA": false,
+      "requiresApproval": false,
+      "auditLoggingLevel": "standard"
+    },
+    "low": {
+      "color": "blue",
+      "description": "Minor security impact if exposed",
+      "requiresMFA": false,
+      "requiresApproval": false,
+      "auditLoggingLevel": "basic"
+    }
+  },
+  "validationRules": {
+    "enforceRegexValidation": true,
+    "preventWeakPatterns": true,
+    "requireCategoryOnAdd": true,
+    "preventDuplicates": true,
+    "blockExportIfCritical": true
+  },
+  "auditLogging": {
+    "enabled": true,
+    "storageLocation": "/var/log/vault/audit.log",
+    "rotationPolicy": "daily",
+    "retentionDays": 365,
+    "logFormat": "json",
+    "includeFields": [
+      "timestamp",
+      "action",
+      "category",
+      "user",
+      "ipAddress",
+      "status",
+      "sensitivityLevel"
+    ]
+  }
+}

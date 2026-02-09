@@ -364,7 +364,7 @@ async function question(rl: any, prompt: string, hidden: boolean = false): Promi
     if (hidden) {
       // Hide input for passwords
       process.stdout.write(prompt);
-      process.stdin.setRawMode(true);
+      if (process.stdin.isTTY) process.stdin.setRawMode(true);
       process.stdin.resume();
       process.stdin.setEncoding('utf8');
       

@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <title>FabledVault V4</title>
+</head>
+<body class="p-8 max-w-4xl mx-auto bg-gray-50 min-h-screen">
+  <h1 class="text-3xl font-bold mb-8 text-center bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-xl shadow-xl">
+    🔐 FabledVault V4
+  </h1>
+  
+  <!-- 📖 Instructions / Tooltips -->
+  <div class="bg-blue-50 border-2 border-blue-200 p-8 rounded-2xl mb-8 shadow-lg">
+    <h2 class="text-2xl font-bold mb-6 flex items-center">
+      <span class="w-3 h-3 bg-blue-500 rounded-full mr-3"></span>
+      How to Use
+    </h2>
+    <div class="grid md:grid-cols-2 gap-6 text-lg">
+      <div>
+        <h3 class="font-semibold mb-3">📝 Add Credentials</h3>
+        <ul class="space-y-2 mb-4">
+          <li>• <strong>Namespace:</strong> Group (personal, chase, work, crypto)</li>
+          <li>• <strong>Name:</strong> Specific (email, password, api_key, routing)</li>
+          <li>• Click <strong>Add</strong> → Auto-saves + lists</li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="font-semibold mb-3">🔑 Token Format (for agents)</h3>
+        <div class="bg-gray-100 p-4 rounded-lg font-mono text-sm">
+          <code>[VAULT:personal:chase_password]</code><br>
+          <code>[VAULT:chase:account_number]</code>
+        </div>
+        <p class="text-sm text-gray-600 mt-2">Vault substitutes locally—agents see <em>only tokens</em>.</p>
+      </div>
+    </div>
+    <div class="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+      <strong>💡 Pro Tip:</strong> Use in Grant: <code>"login with [VAULT:personal:chase_email]"</code>
+    </div>
+  </div>
+
+  <!-- 🏷️ PII Category Manager -->
+  <div id="category-panel" class="bg-gradient-to-r from-purple-50 to-indigo-50 p-8 rounded-2xl shadow-xl mb-8 border-2 border-purple-200">
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-2xl font-bold flex items-center">
+        <span class="w-4 h-4 bg-purple-500 rounded-full mr-3"></span>
+        PII Category Manager
+      </h2>
+      <button type="button" onclick="toggleCategoryPanel()" class="text-purple-600 hover:text-purple-800 font-bold text-lg">
+        ▼
+      </button>
+    </div>
+
+    <div id="category-content" class="grid md:grid-cols-2 gap-6">
+      <!-- Category List -->
+      <div>
+        <h3 class="text-lg font-semibold mb-4 text-gray-700">Available Categories</h3>
+        <div id="category-list" class="space-y-2 max-h-72 overflow-y-auto border-l-4 border-purple-300 pl-4">
+          <p class="text-gray-500 text-sm italic">Loading categories...</p>
+        </div>
+      </div>
+
+      <!-- Category Details -->
+      <div>
+        <h3 class="text-lg font-semibold mb-4 text-gray-700">Category Details</h3>
+        <div id="category-details" class="bg-white p-6 rounded-xl border-2 border-purple-100">
+          <p class="text-gray-500 text-sm italic">Select a category to view details</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ➕ Add Credential with PII Classification -->
+  <form onsubmit="return addCredential(event)" class="bg-white p-8 rounded-2xl shadow-xl mb-8 border-2 border-gray-100 hover:border-blue-200 transition">
+    <h3 class="text-xl font-bold mb-6 text-gray-800">Add New Credential</h3>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div>
+        <label class="block text-sm font-semibold mb-2 text-gray-700">Namespace</label>
+        <input id="ns-input" placeholder="personal" class="w-full p-4 border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-200 focus:border-blue-500 transition-all" required>
+        <p class="text-xs text-gray-500 mt-1">personal • chase • work • investments</p>
+      </div>
+      <div>
+        <label class="block text-sm font-semibold mb-2 text-gray-700">Name</label>
+        <input id="name-input" placeholder="password" class="w-full p-4 border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-200 focus:border-blue-500 transition-all" required>
+        <p class="text-xs text-gray-500 mt-1">email • api_key • routing • token</p>
+      </div>
+      <div>
+        <label class="block text-sm font-semibold mb-2 text-gray-700">PII Category</label>
+        <select id="category-input" class="w-full p-4 border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-200 focus:border-blue-500 transition-all" required>
+          <option value="">Select category...</option>
+        </select>
+        <p class="text-xs text-gray-500 mt-1">e.g., ssn, credit_card</p>
+      </div>
+      <div class="flex items-end">
+        <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 px-8 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl hover:from-blue-700 hover:to-blue-800 transform hover:-translate-y-1 transition-all duration-200">
+          ➕ Add to Vault
+        </button>
+      </div>
+    </div>
+
+    <!-- Validation Feedback -->
+    <div id="validation-feedback" class="mt-4 hidden"></div>
+  </form>
+
+  <!-- 📋 Vault List -->
+  <div id="vault-list" class="bg-white rounded-2xl shadow-2xl border-2 border-gray-100 overflow-hidden">
+    <div class="p-8 border-b-2 bg-gradient-to-r from-gray-50 to-white">
+      <div class="flex items-center justify-between">
+        <h2 class="text-2xl font-bold flex items-center">
+          <span id="status-dot" class="w-4 h-4 bg-green-500 rounded-full mr-4 animate-pulse"></span>
+          Vault Contents
+          <span id="count" class="ml-4 bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-mono text-sm">0 items</span>
+        </h2>
+        <div class="space-x-3">
+          <button hx-post="/export" hx-target="#export" class="px-6 py-2 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 shadow-lg transition-all">
+            📥 Export JSON
+          </button>
+          <button type="button" onclick="clearVault()" class="px-6 py-2 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 shadow-lg transition-all">
+            🗑️ Clear All
+          </button>
+        </div>
+      </div>
+    </div>
+    <div id="vault-items" class="p-8 space-y-4 max-h-96 overflow-y-auto"></div>
+  </div>
+
+  <!-- 📤 Export Results -->
+  <div id="export" class="mt-8 p-8 bg-green-50 border-2 border-green-200 rounded-2xl hidden"></div>
+
+  <script>
+    // 🌐 Global state
+    let piiSchema = null;
+    let selectedCategory = null;
+
+    // 🌐 Load vault on page load
+    window.addEventListener('load', async () => {
+      await loadPIISchema();
+      loadVault();
+    });
+    
+    // ============================================================================
+    // PII SCHEMA FUNCTIONS
+    // ============================================================================
+
+    /**
+     * Load PII schema from server with categories and validation rules.
+     */
+    async function loadPIISchema() {
+      try {
+        const response = await fetch('/api/categories');
+        if (!response.ok) throw new Error('Failed to load categories');
+        const categories = await response.json();
+        piiSchema = { categories };
+
+        populateCategoryDropdown(categories);
+        renderCategoryManager(categories);
+      } catch (err) {
+        console.error('Error loading PII schema:', err);
+        showToast('Failed to load PII categories', 'warning');
+      }
+    }
+
+    /**
+     * Populate category dropdown with options from schema.
+     */
+    function populateCategoryDropdown(categories) {
+      const select = document.getElementById('category-input');
+      select.innerHTML = '<option value="">Select PII category...</option>';
+
+      categories.forEach((cat) => {
+        const option = document.createElement('option');
+        option.value = cat.id;
+        option.textContent = cat.name + ' (' + cat.sensitivityLevel + ')';
+        option.dataset.pattern = cat.patternDescription;
+        select.appendChild(option);
+      });
+
+      select.addEventListener('change', (e) => {
+        const selected = categories.find((c) => c.id === e.target.value);
+        if (selected) {
+          updateValidationHint(selected);
+        }
+      });
+    }
+
+    /**
+     * Display all categories in interactive manager panel.
+     */
+    function renderCategoryManager(categories) {
+      const listEl = document.getElementById('category-list');
+
+      const items = categories.map((cat) => {
+        const div = document.createElement('div');
+        div.className = 'w-full text-left p-3 rounded-lg border-2 border-purple-200 hover:bg-purple-100 hover:border-purple-500 transition-all cursor-pointer';
+        div.style.borderColor = '#c4b5fd';
+        div.onclick = () => selectCategory(cat.id);
+
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'font-semibold text-purple-900';
+        nameDiv.textContent = cat.name;
+
+        const typesDiv = document.createElement('div');
+        typesDiv.className = 'text-xs text-gray-600';
+        typesDiv.textContent = cat.fieldTypes.join(', ');
+
+        const badgeDiv = document.createElement('span');
+        badgeDiv.className = 'px-2 py-1 text-xs font-bold rounded-full';
+        badgeDiv.textContent = cat.sensitivityLevel;
+        badgeDiv.className += ' ' + getSensitivityColor(cat.sensitivityLevel);
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'flex items-center justify-between';
+        wrapper.appendChild(nameDiv);
+        wrapper.appendChild(badgeDiv);
+
+        div.appendChild(wrapper);
+        div.appendChild(typesDiv);
+
+        return div;
+      });
+
+      listEl.innerHTML = '';
+      items.forEach(item => listEl.appendChild(item));
+    }
+
+    /**
+     * Get Tailwind color classes based on PII sensitivity level.
+     */
+    function getSensitivityColor(level) {
+      const colors = {
+        critical: 'bg-red-100 text-red-800',
+        high: 'bg-orange-100 text-orange-800',
+        medium: 'bg-yellow-100 text-yellow-800',
+        low: 'bg-blue-100 text-blue-800',
+      };
+      return colors[level] || 'bg-gray-100 text-gray-800';
+    }
+
+    /**
+     * Display details for selected PII category.
+     */
+    function selectCategory(categoryId) {
+      selectedCategory = categoryId;
+      const category = piiSchema.categories.find((c) => c.id === categoryId);
+      if (!category) return;
+
+      const detailsEl = document.getElementById('category-details');
+      detailsEl.innerHTML = '';
+
+      // Name and description
+      const titleEl = document.createElement('h4');
+      titleEl.className = 'font-bold text-lg text-gray-800 mb-2';
+      titleEl.textContent = category.name;
+      detailsEl.appendChild(titleEl);
+
+      const descEl = document.createElement('p');
+      descEl.className = 'text-sm text-gray-600 mb-4';
+      descEl.textContent = category.description;
+      detailsEl.appendChild(descEl);
+
+      // Pattern box
+      const patternDiv = document.createElement('div');
+      patternDiv.className = 'bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4';
+
+      const patternLabelEl = document.createElement('div');
+      patternLabelEl.className = 'text-xs font-semibold text-gray-500 uppercase mb-2';
+      patternLabelEl.textContent = 'Pattern';
+      patternDiv.appendChild(patternLabelEl);
+
+      const patternValEl = document.createElement('div');
+      patternValEl.className = 'font-mono text-sm text-gray-800 break-all';
+      patternValEl.textContent = category.patternDescription;
+      patternDiv.appendChild(patternValEl);
+
+      detailsEl.appendChild(patternDiv);
+
+      // Sensitivity + Audit grid
+      const gridDiv = document.createElement('div');
+      gridDiv.className = 'grid grid-cols-2 gap-3 mb-4';
+
+      const sensDiv = document.createElement('div');
+      const sensLabelEl = document.createElement('div');
+      sensLabelEl.className = 'text-xs font-semibold text-gray-500 uppercase';
+      sensLabelEl.textContent = 'Sensitivity';
+      sensDiv.appendChild(sensLabelEl);
+
+      const sensBadgeEl = document.createElement('span');
+      sensBadgeEl.className = 'inline-block mt-1 px-3 py-1 text-xs font-bold rounded-full ' + getSensitivityColor(category.sensitivityLevel);
+      sensBadgeEl.textContent = category.sensitivityLevel;
+      sensDiv.appendChild(sensBadgeEl);
+
+      const auditDiv = document.createElement('div');
+      const auditLabelEl = document.createElement('div');
+      auditLabelEl.className = 'text-xs font-semibold text-gray-500 uppercase';
+      auditLabelEl.textContent = 'Audit Log';
+      auditDiv.appendChild(auditLabelEl);
+
+      const auditValEl = document.createElement('div');
+      auditValEl.className = 'text-sm font-bold text-purple-600 mt-1';
+      auditValEl.textContent = category.auditRequired ? '✓ Required' : '○ Optional';
+      auditDiv.appendChild(auditValEl);
+
+      gridDiv.appendChild(sensDiv);
+      gridDiv.appendChild(auditDiv);
+      detailsEl.appendChild(gridDiv);
+
+      // Export policy
+      const exportDiv = document.createElement('div');
+      exportDiv.className = 'pt-4 border-t border-gray-200';
+      const exportLabelEl = document.createElement('div');
+      exportLabelEl.className = 'text-xs text-gray-500';
+      exportLabelEl.textContent = 'Export Allowed: ' + (category.allowExport ? '✓ Yes' : '✗ No');
+      exportDiv.appendChild(exportLabelEl);
+      detailsEl.appendChild(exportDiv);
+    }
+
+    /**
+     * Show validation hint for selected category pattern.
+     */
+    function updateValidationHint(category) {
+      const feedback = document.getElementById('validation-feedback');
+      if (category) {
+        feedback.classList.remove('hidden');
+        feedback.innerHTML = '';
+
+        const boxEl = document.createElement('div');
+        boxEl.className = 'p-4 bg-blue-50 border-l-4 border-blue-500 rounded';
+
+        const titleEl = document.createElement('div');
+        titleEl.className = 'text-sm font-semibold text-blue-900 mb-1';
+        titleEl.textContent = 'Format required for ' + category.name + ':';
+        boxEl.appendChild(titleEl);
+
+        const patternEl = document.createElement('div');
+        patternEl.className = 'text-sm text-blue-800';
+        patternEl.textContent = category.patternDescription;
+        boxEl.appendChild(patternEl);
+
+        feedback.appendChild(boxEl);
+      } else {
+        feedback.classList.add('hidden');
+      }
+    }
+
+    /**
+     * Toggle category manager panel visibility.
+     */
+    function toggleCategoryPanel() {
+      const content = document.getElementById('category-content');
+      const button = event.target;
+
+      if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        button.textContent = '▼';
+      } else {
+        content.classList.add('hidden');
+        button.textContent = '▶';
+      }
+    }
+
+    // ============================================================================
+    // VAULT MANAGEMENT FUNCTIONS
+    // ============================================================================
+
+    function loadVault() {
+      let vault = getVault();
+      renderVault(vault);
+    }
+    
+    function getVault() {
+      try {
+        return JSON.parse(localStorage.getItem('fabled_vault') || '[]');
+      } catch {
+        return [];
+      }
+    }
+    
+    function saveVault(vault) {
+      localStorage.setItem('fabled_vault', JSON.stringify(vault, null, 2));
+    }
+    
+    function renderVault(vault) {
+      const itemsEl = document.getElementById('vault-items');
+      const countEl = document.getElementById('count');
+      
+      if (vault.length === 0) {
+        itemsEl.innerHTML = `
+          <div class="text-center py-16 text-gray-500">
+            <div class="text-6xl mb-4">🔐</div>
+            <p class="text-xl font-semibold mb-2">Vault is empty</p>
+            <p class="text-sm">Add your first credential above</p>
+          </div>
+        `;
+      } else {
+        itemsEl.innerHTML = vault.map((item, i) => `
+          <div class="group bg-gradient-to-r from-gray-50 to-white p-6 rounded-xl border border-gray-200 hover:shadow-lg hover:border-blue-300 transition-all duration-200 hover:-translate-y-1">
+            <div class="flex items-start justify-between">
+              <div class="flex-1">
+                <div class="font-mono bg-blue-100 text-blue-900 px-4 py-2 rounded-lg text-lg font-bold mb-2">
+                  ${item.token}
+                </div>
+                <div class="flex flex-wrap gap-4 text-sm">
+                  <span class="px-3 py-1 bg-purple-100 text-purple-800 rounded-full">${item.ns}</span>
+                  <span class="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full">${item.name}</span>
+                  <span class="px-3 py-1 bg-gray-100 text-gray-800 rounded-full">ID: ${i}</span>
+                </div>
+              </div>
+              <div class="flex space-x-2 opacity-50 group-hover:opacity-100 transition-all ml-4 flex-shrink-0">
+                <button onclick="editItem(${i})" 
+                        class="w-12 h-12 bg-blue-500 text-white rounded-2xl font-bold hover:bg-blue-600 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all"
+                        title="Edit">
+                  🖉
+                </button>
+                <button hx-post="/delete" hx-vals='{"id":${i}}' 
+                        hx-target="#vault-list" hx-swap="outerHTML" hx-confirm="Delete ${item.token}?"
+                        class="w-12 h-12 bg-red-500 text-white rounded-2xl font-bold hover:bg-red-600 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all"
+                        title="Delete">
+                  🗑️
+                </button>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      }
+      
+      countEl.textContent = vault.length === 0 ? '0 items' : `${vault.length} items`;
+    }
+    
+    // ✏️ Edit Item (inline prompts)
+    function editItem(index) {
+      const vault = getVault();
+      const item = vault[index];
+      
+      const ns = prompt('Edit Namespace:', item.ns) || item.ns;
+      const name = prompt('Edit Name:', item.name) || item.name;
+      
+      item.ns = ns;
+      item.name = name;
+      item.token = `[VAULT:${ns}:${name}]`;
+      
+      saveVault(vault);
+      renderVault(vault);
+    }
+    
+    // 🗑️ Clear All (confirm)
+    function clearVault() {
+      if (confirm('Clear entire vault? This cannot be undone.')) {
+        localStorage.removeItem('fabled_vault');
+        loadVault();
+      }
+    }
+    
+    /**
+     * Add credential with PII category validation.
+     *
+     * Given: Namespace, name, and PII category selected
+     * When: User submits form
+     * Then: Validate against category pattern, add to vault, log audit
+     */
+    function addCredential(event) {
+      event?.preventDefault();
+
+      const nsInput = document.getElementById('ns-input');
+      const nameInput = document.getElementById('name-input');
+      const categoryInput = document.getElementById('category-input');
+
+      const ns = nsInput.value.trim();
+      const name = nameInput.value.trim();
+      const categoryId = categoryInput.value.trim();
+
+      // Validate inputs
+      if (!ns || !name || !categoryId) {
+        showToast('Please fill Namespace, Name, and select a PII Category', 'error');
+        return false;
+      }
+
+      // Get category and validate
+      const category = piiSchema?.categories?.find((c) => c.id === categoryId);
+      if (!category) {
+        showToast('Invalid category selected', 'error');
+        return false;
+      }
+
+      // NOTE: In a real vault, you would collect the actual sensitive value here
+      // and validate it server-side. For this UI demo, we're validating locally.
+      // SECURITY: Never store actual values - only use tokens
+
+      const vault = getVault();
+      const item = {
+        ns,
+        name,
+        categoryId,
+        categoryName: category.name,
+        sensitivityLevel: category.sensitivityLevel,
+        token: `[VAULT:${ns}:${name}]`,
+        added: new Date().toISOString(),
+      };
+
+      vault.unshift(item);
+      saveVault(vault);
+      renderVault(vault);
+
+      // Clear form + focus
+      nsInput.value = '';
+      nameInput.value = '';
+      categoryInput.value = '';
+      nsInput.focus();
+
+      // Clear validation hint
+      document.getElementById('validation-feedback').classList.add('hidden');
+
+      // Success toast with sensitivity level
+      const icon =
+        category.sensitivityLevel === 'critical'
+          ? '🔴'
+          : category.sensitivityLevel === 'high'
+            ? '🟠'
+            : '🟡';
+
+      showToast(`${icon} Added: ${item.token} (${category.sensitivityLevel})`);
+      return false;
+    }
+
+    /**
+     * Show toast notification with type-based styling.
+     *
+     * Given: A message and optional type (success, error, warning)
+     * When: Toast is shown
+     * Then: Display colored toast with auto-dismiss
+     */
+    function showToast(message, type = 'success') {
+      const toast = document.createElement('div');
+      let bgColor = 'bg-green-600';
+      if (type === 'error') {
+        bgColor = 'bg-red-600';
+      } else if (type === 'warning') {
+        bgColor = 'bg-yellow-600';
+      }
+
+      toast.className = `fixed top-4 right-4 ${bgColor} text-white px-6 py-4 rounded-xl shadow-2xl transform translate-x-full transition-all duration-300 z-50`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+
+      setTimeout(() => toast.classList.remove('translate-x-full'), 100);
+      setTimeout(() => {
+        toast.classList.add('translate-x-full');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+    
+    // 📤 Export handler
+    document.body.addEventListener('htmx:afterRequest', function(e) {
+      if (e.detail.xhr.status === 200 && e.detail.target.id === 'export') {
+        const data = JSON.parse(e.detail.xhr.responseText);
+        e.detail.target.innerHTML = `
+          <div class="flex items-center justify-between p-6 bg-green-100 border-2 border-green-300 rounded-2xl">
+            <div>
+              <h3 class="font-bold text-lg mb-1">✅ Exported ${data.length} items</h3>
+              <pre class="bg-white p-4 rounded-lg font-mono text-sm overflow-auto max-h-60 mt-3">${JSON.stringify(data, null, 2)}</pre>
+            </div>
+            <button onclick="navigator.clipboard.writeText(JSON.stringify(data, null, 2)); this.textContent='Copied!'" 
+                    class="px-6 py-2 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700">
+              📋 Copy
+            </button>
+          </div>
+        `;
+        e.detail.target.classList.remove('hidden');
+        setTimeout(() => e.detail.target.classList.add('hidden'), 10000);
+      }
+    });
+  </script>
+</body>
+</html>
